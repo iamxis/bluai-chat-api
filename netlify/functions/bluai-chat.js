@@ -149,6 +149,24 @@ exports.handler = async (event) => {
     const userPrompt = requestBody.prompt;
 
     
+    // 🛑 NEW: Check for Trivial/Ending Prompts 🛑
+    const lowerPrompt = userPrompt.toLowerCase();
+    
+    if (lowerPrompt === 'thanks' || 
+        lowerPrompt === 'alright thanks' || 
+        lowerPrompt === 'thank you' ||
+        lowerPrompt === 'bye' ||
+        lowerPrompt === 'goodbye') {
+        
+        // Respond immediately with a friendly closing message without calling the AI
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ response: "You're very welcome! Feel free to reach out if you have any other questions. Have a great day!" }),
+            headers: {
+                'Access-Control-Allow-Origin': '*', 
+            }
+        };
+    }
 
     // --- BRAND TRAINING LOGIC ---
 
