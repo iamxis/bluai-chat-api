@@ -6,67 +6,67 @@
 
 async function fetchContextFromUrl(url) {
 
-    try {
+try {
 
-        // 🛑 FIX: Added User-Agent header to bypass potential 503 firewalls/security checks
+// 🛑 FIX: Added User-Agent header to bypass potential 503 firewalls/security checks
 
-        const response = await fetch(url, {
+const response = await fetch(url, {
 
-            headers: {
+headers: {
 
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
-            }
+}
 
-        }); 
-
-        
-
-        if (response.status !== 200) {
-
-            // Updated error message to be more specific for debugging
-
-            console.error(`Failed to fetch ${url}. Status: ${response.status}`);
-
-            return `[Content Retrieval Error: Server returned status ${response.status}.]`;
-
-        }
-
-        
-
-        const rawHtml = await response.text();
-
-        
-
-        // --- Crude HTML Cleanup (for simplicity) ---
-
-        let cleanText = rawHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-
-                               .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-
-                               .replace(/<[^>]*>/g, '');
-
-        
-
-        // Truncate content to avoid exceeding Gemini's token limit
-
-        const MAX_CONTEXT_LENGTH = 5000;
-
-        cleanText = cleanText.substring(0, MAX_CONTEXT_LENGTH);
-
-        
-
-        return cleanText.trim();
+}); 
 
 
 
-    } catch (e) {
+if (response.status !== 200) {
 
-        console.error("Context fetch error:", e);
+// Updated error message to be more specific for debugging
 
-        return "[Content Retrieval Error: Network issue (e.g., DNS or Timeout).]";
+console.error(`Failed to fetch ${url}. Status: ${response.status}`);
 
-    }
+return `[Content Retrieval Error: Server returned status ${response.status}.]`;
+
+}
+
+
+
+const rawHtml = await response.text();
+
+
+
+// --- Crude HTML Cleanup (for simplicity) ---
+
+let cleanText = rawHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+
+.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+
+.replace(/<[^>]*>/g, '');
+
+
+
+// Truncate content to avoid exceeding Gemini's token limit
+
+const MAX_CONTEXT_LENGTH = 5000;
+
+cleanText = cleanText.substring(0, MAX_CONTEXT_LENGTH);
+
+
+
+return cleanText.trim();
+
+
+
+} catch (e) {
+
+console.error("Context fetch error:", e);
+
+return "[Content Retrieval Error: Network issue (e.g., DNS or Timeout).]";
+
+}
 
 }
 
@@ -78,142 +78,136 @@ async function fetchContextFromUrl(url) {
 
 exports.handler = async (event) => {
 
-    // 1. Dynamic Import
+// 1. Dynamic Import
 
-    const { GoogleGenAI } = await import("@google/genai"); 
-
-    
-
-    // 2. Initialize the client securely
-
-    const ai = new GoogleGenAI({ 
-
-        apiKey: process.env.GEMINI_API_KEY 
-
-    });
-
-    
-
-    // 3. HANDLE OPTIONS (CORS Pre-Flight Check)
-
-    if (event.httpMethod === "OPTIONS") {
-
-        return {
-
-            statusCode: 200,
-
-            headers: {
-
-                'Access-Control-Allow-Origin': '*',
-
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-
-                'Access-Control-Allow-Headers': 'Content-Type',
-
-            },
-
-            body: ''
-
-        };
-
-    }
-
-    
-
-    // 4. Handle non-POST methods
-
-    if (event.httpMethod !== "POST") {
-
-        return { statusCode: 405, body: "Method Not Allowed" };
-
-    }
+const { GoogleGenAI } = await import("@google/genai"); 
 
 
 
-    // 5. Parse Request Body
+// 2. Initialize the client securely
 
-    let requestBody;
+const ai = new GoogleGenAI({ 
 
-    try {
+apiKey: process.env.GEMINI_API_KEY 
 
-        requestBody = JSON.parse(event.body);
-
-    } catch (e) {
-
-        return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON format" }) };
-
-    }
-
-    
-
-    const userPrompt = requestBody.prompt;
-
-    
-    // 🛑 NEW: Check for Trivial/Ending Prompts 🛑
-    const lowerPrompt = userPrompt.toLowerCase();
-    
-    if (lowerPrompt === 'thanks' || 
-        lowerPrompt === 'alright thanks' || 
-        lowerPrompt === 'thank you' ||
-        lowerPrompt === 'bye' ||
-        lowerPrompt === 'goodbye') {
-        
-        // Respond immediately with a friendly closing message without calling the AI
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ response: "You're very welcome! Feel free to reach out if you have any other questions. Have a great day!" }),
-            headers: {
-                'Access-Control-Allow-Origin': '*', 
-            }
-        };
-    }
-
-    // --- BRAND TRAINING LOGIC ---
-
-    let contextToInject = "";
-
-    
-
-    // 🛑 CRITICAL FIX: Reverting to the SINGLE, CLEAN RAG PAGE 🛑
-    // If the multi-fetch logic failed, we must use the single, curated page for stability.
-    
-    // NOTE: Ensure this page (ai-knowledge-base) contains ALL 6 finalized sections.
-    const combinedContext = await fetchContextFromUrl("https://iamxis.com.ng/ai-knowledge-base/");
-    
-    contextToInject = `
-[START KNOWLEDGE BASE FROM SITE]
-${combinedContext}
-[END KNOWLEDGE BASE]
-    `.trim();
-
-
-    // ADDED DEBUG LINE: Now includes the fix for better error tracing
-
-    console.log("Fetched Context for BluAI:", contextToInject);
+});
 
 
 
-    // 🛑 Construct the FINAL Prompt (Using the unified strategy) 🛑
-    let finalPrompt = userPrompt;
+// 3. HANDLE OPTIONS (CORS Pre-Flight Check)
 
-    if (combinedContext.length > 0 && !combinedContext.includes('[Content Retrieval Error:')) {
-        finalPrompt = `
-Based ONLY on your CORE KNOWLEDGE (in your persona) AND the KNOWLEDGE BASE provided below, answer the user's question. Strictly adhere to all rules, especially the Forbidden Knowledge command.
-User Question: ${userPrompt}
-        `;
-    } else {
-        // If RAG fails, default back to just the persona
-        finalPrompt = userPrompt;
-    }
-    
-    // ... (rest of the API call and error handling remains the same) ...
+if (event.httpMethod === "OPTIONS") {
+
+return {
+
+statusCode: 200,
+
+headers: {
+
+'Access-Control-Allow-Origin': '*',
+
+'Access-Control-Allow-Methods': 'POST, OPTIONS',
+
+'Access-Control-Allow-Headers': 'Content-Type',
+
+},
+
+body: ''
+
 };
 
-    
+}
 
-    // 🛑 Set the System Instruction (Brand Persona) 🛑
 
-    const brandPersona = `You are "Blu," the dedicated, expert customer service representative for I AM XIS.
+
+// 4. Handle non-POST methods
+
+if (event.httpMethod !== "POST") {
+
+return { statusCode: 405, body: "Method Not Allowed" };
+
+}
+
+
+
+// 5. Parse Request Body
+
+let requestBody;
+
+try {
+
+requestBody = JSON.parse(event.body);
+
+} catch (e) {
+
+return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON format" }) };
+
+}
+
+
+
+const userPrompt = requestBody.prompt;
+
+
+// 🛑 NEW: Check for Trivial/Ending Prompts 🛑
+const lowerPrompt = userPrompt.toLowerCase();
+
+if (lowerPrompt === 'thanks' || 
+lowerPrompt === 'alright thanks' || 
+lowerPrompt === 'thank you' ||
+lowerPrompt === 'bye' ||
+lowerPrompt === 'goodbye') {
+
+// Respond immediately with a friendly closing message without calling the AI
+return {
+statusCode: 200,
+body: JSON.stringify({ response: "You're very welcome! Feel free to reach out if you have any other questions. Have a great day!" }),
+headers: {
+'Access-Control-Allow-Origin': '*', 
+}
+};
+}
+
+// --- BRAND TRAINING LOGIC ---
+
+let contextToInject = "";
+
+
+
+// 🛑 CRITICAL FUNCTIONAL CHANGE: UNIFIED RAG STRATEGY 🛑
+// The previous conditional RAG logic (checking for "return" or "shipping") is replaced.
+// We now fetch the entire centralized knowledge base every time.
+// NOTE: Replace this placeholder URL with the actual link to your dedicated AI knowledge page.
+contextToInject = await fetchContextFromUrl("https://iamxis.com.ng/ai-knowledge-base/");
+
+
+
+// ADDED DEBUG LINE: Now includes the fix for better error tracing
+
+console.log("Fetched Context for Gemini:", contextToInject); 
+
+
+
+// 🛑 Construct the FINAL Prompt (Using the unified strategy) 🛑
+let finalPrompt = userPrompt;
+
+if (contextToInject.length > 0 && !contextToInject.startsWith('[Content Retrieval Error:')) {
+// Embed the fetched content into the prompt ONLY if retrieval was successful
+finalPrompt = `
+       [START KNOWLEDGE BASE FROM SITE]
+       ${contextToInject}
+       [END KNOWLEDGE BASE]
+       
+       Based ONLY on your CORE KNOWLEDGE (in your persona) AND the KNOWLEDGE BASE provided above, answer the user's question. Strictly adhere to all rules, especially the Forbidden Knowledge command.
+       User Question: ${userPrompt}
+       `;
+}
+
+
+
+// 🛑 Set the System Instruction (Brand Persona) 🛑
+
+const brandPersona = `You are "Blu," the dedicated, expert customer service representative for I AM XIS.
 
 --- BRAND IDENTITY ---
 Core Business: I AM XIS is a design studio creating personalized, made-to-order essentials that embody individuality, comfort, and timelessness.
@@ -234,9 +228,9 @@ Tone & Goals: Maintain a professional, friendly, helpful, aspirational, **human*
 3.  **Sourcing Hierarchy:** Use the CORE KNOWLEDGE first (for identity and basic facts). Use the [KNOWLEDGE BASE] for specific policy details, complex FAQs, or exceptions.
 4.  **Conciseness:** Provide the shortest, most helpful answer possible. Do not provide a list of policies unless asked for them.
 5.  **Made-to-Order:** **Proactively remind the user that items are made-to-order** when:
-    a) The user asks about **production, shipping, delivery, or cancellation times** for the first time in the current interaction.
-    b) The answer to the user's question directly relates to a **unique challenge** of made-to-order items (e.g., returns or personalization changes).
-    c) **AVOID** repeating this fact in subsequent, related messages unless the user clearly misunderstands the timeline.
+   a) The user asks about **production, shipping, delivery, or cancellation times** for the first time in the current interaction.
+   b) The answer to the user's question directly relates to a **unique challenge** of made-to-order items (e.g., returns or personalization changes).
+   c) **AVOID** repeating this fact in subsequent, related messages unless the user clearly misunderstands the timeline.
 6.  **Deflection:** NEVER tell the user to "visit the page" unless the answer is already provided in the knowledge and they request the direct source link.
 7.  **Out of Scope/Fabrication:** If the exact answer is missing from both the CORE KNOWLEDGE and the [KNOWLEDGE BASE], politely and clearly state: "I don't have that specific detail
 available right now based on my current information. Please reach out to our human support team for the most up-to-date details." You must not attempt to guess or infer information.
@@ -252,66 +246,66 @@ available right now based on my current information. Please reach out to our hum
 
 
 
-    // 6. API Call Logic
+// 6. API Call Logic
 
-    try { 
+try { 
 
-        const response = await ai.models.generateContent({
+const response = await ai.models.generateContent({
 
-            model: "gemini-2.5-flash", 
+model: "gemini-2.5-flash", 
 
-            // Use the augmented prompt
+// Use the augmented prompt
 
-            contents: finalPrompt,
+contents: finalPrompt,
 
-            config: {
+config: {
 
-                // Set the fixed persona and rules
+// Set the fixed persona and rules
 
-                systemInstruction: brandPersona, 
+systemInstruction: brandPersona, 
 
-            },
+},
 
-        });
+});
 
 
 
-        // SUCCESS RESPONSE
+// SUCCESS RESPONSE
 
-        return {
+return {
 
-            statusCode: 200,
+statusCode: 200,
 
-            body: JSON.stringify({ response: response.text }),
+body: JSON.stringify({ response: response.text }),
 
-            headers: {
+headers: {
 
-                'Access-Control-Allow-Origin': '*', 
+'Access-Control-Allow-Origin': '*', 
 
-            }
+}
 
-        };
+};
 
-    } catch (error) {
+} catch (error) {
 
-        // ERROR RESPONSE
+// ERROR RESPONSE
 
-        console.error("IAX BluAI Error:", error);
+console.error("IAX BluAI Error:", error);
 
-        
 
-        const status = (error.message && (error.message.includes('API key') || error.message.includes('permission'))) ? 403 : 500;
 
-        
+const status = (error.message && (error.message.includes('API key') || error.message.includes('permission'))) ? 403 : 500;
 
-        return {
 
-            statusCode: status,
 
-            body: JSON.stringify({ error: `AI Service Error (Code ${status}): ${error.message}` }),
+return {
 
-        };
+statusCode: status,
 
-    }
+body: JSON.stringify({ error: `AI Service Error (Code ${status}): ${error.message}` }),
+
+};
+
+}
 
 };
