@@ -1,6 +1,18 @@
 {
   "name": "gemini-netlify-proxy",
   "version": "1.0.0",
+  "description": "Proxy for Gemini API calls via Netlify Function.",
+  "main": "netlify/functions/gemini-chat.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "netlify",
+    "gemini",
+    "ai"
+  ],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@google/genai": "^0.16.0"
   }
