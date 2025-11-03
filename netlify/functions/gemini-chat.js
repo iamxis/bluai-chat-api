@@ -1,28 +1,27 @@
-// Use 'require' syntax for wider compatibility in serverless environments
+// netlify/functions/gemini-chat.js (Final, robust CORS handling)
 const { GoogleGenAI } = require("@google/genai");
 
-// This is the standard entry point for Netlify Functions (CommonJS export)
 exports.handler = async (event) => {
-    // 1. Check if the request is a POST (or the OPTIONS pre-flight)
+    // 🛑 1. HANDLE OPTIONS (CORS PRE-FLIGHT) FIRST 🛑
     if (event.httpMethod === "OPTIONS") {
-        // Explicitly allow the pre-flight check for CORS
         return {
             statusCode: 200,
             headers: {
+                // Must explicitly allow the methods and headers used by the POST request
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type',
             },
-            body: ''
+            body: '' // No content needed for a pre-flight success
         };
     }
     
-    // We only process the body for POST requests
+    // 2. Only proceed if it is a POST request
     if (event.httpMethod !== "POST") {
         return { statusCode: 405, body: "Method Not Allowed" };
     }
 
-    // Safely parse the JSON body
+    // --- Start POST Request Logic ---
     let requestBody;
     try {
         requestBody = JSON.parse(event.body);
@@ -41,7 +40,7 @@ exports.handler = async (event) => {
             contents: userPrompt,
         });
 
-        // Return the AI's response
+        // 3. Return the AI's response (with CORS header for the main request)
         return {
             statusCode: 200,
             body: JSON.stringify({ response: response.text }),
@@ -52,9 +51,12 @@ exports.handler = async (event) => {
         };
     } catch (error) {
         console.error("Gemini API Error:", error);
+        // Return a 403 or 400 error status if the API key is wrong or the request body is bad
+        const status = (error.message.includes('API key') || error.message.includes('permission')) ? 403 : 500;
+        
         return {
-            statusCode: 500,
-            body: JSON.stringify({ error: `Serverless API Error: ${error.message}` }),
+            statusCode: status,
+            body: JSON.stringify({ error: `AI Service Error (Code ${status}): ${error.message}` }),
         };
     }
 };
