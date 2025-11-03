@@ -178,8 +178,29 @@ exports.handler = async (event) => {
     // The previous conditional RAG logic (checking for "return" or "shipping") is replaced.
     // We now fetch the entire centralized knowledge base every time.
     // NOTE: Replace this placeholder URL with the actual link to your dedicated AI knowledge page.
-    contextToInject = await fetchContextFromUrl("https://iamxis.com.ng/ai-knowledge-base/");
+    // 1. Fetch Context from Source 1 (Policies)
+    const policyContext = await fetchContextFromUrl("https://iamxis.com.ng/");
+    
+    // 2. Fetch Context from Source 2 (FAQ)
+    const faqContext = await fetchContextFromUrl("https://iamxis.com.ng/shop/");
 
+    // 3. Fetch Context from Source 3 (Products)
+    const productContext = await fetchContextFromUrl("https://iamxis.com.ng/ai-product-directory/");
+
+    // 4. Combine all contexts with clear delimiters for the AI to read
+    contextToInject = `
+[START CONTEXT SOURCE: POLICIES]
+${policyContext}
+[END CONTEXT SOURCE: POLICIES]
+
+[START CONTEXT SOURCE: FAQ]
+${faqContext}
+[END CONTEXT SOURCE: FAQ]
+
+[START CONTEXT SOURCE: PRODUCTS]
+${productContext}
+[END CONTEXT SOURCE: PRODUCTS]
+    `.trim();
 
 
     // ADDED DEBUG LINE: Now includes the fix for better error tracing
@@ -191,17 +212,22 @@ exports.handler = async (event) => {
     // 🛑 Construct the FINAL Prompt (Using the unified strategy) 🛑
     let finalPrompt = userPrompt;
 
-    if (contextToInject.length > 0 && !contextToInject.startsWith('[Content Retrieval Error:')) {
-        // Embed the fetched content into the prompt ONLY if retrieval was successful
+    if (contextToInject.length > 0 && !contextToInject.includes('[Content Retrieval Error:')) {
         finalPrompt = `
-        [START KNOWLEDGE BASE FROM SITE]
-        ${contextToInject}
-        [END KNOWLEDGE BASE]
-        
-        Based ONLY on your CORE KNOWLEDGE (in your persona) AND the KNOWLEDGE BASE provided above, answer the user's question. Strictly adhere to all rules, especially the Forbidden Knowledge command.
-        User Question: ${userPrompt}
+[START KNOWLEDGE BASE FROM SITE]
+${contextToInject}
+[END KNOWLEDGE BASE]
+
+Based ONLY on your CORE KNOWLEDGE (in your persona) AND the KNOWLEDGE BASE provided above, answer the user's question. Strictly adhere to all rules, especially the Forbidden Knowledge command.
+User Question: ${userPrompt}
         `;
+    } else {
+        // If RAG fails, default back to just the persona
+        finalPrompt = userPrompt;
     }
+    
+    // ... (rest of the API call and error handling remains the same) ...
+};
 
     
 
