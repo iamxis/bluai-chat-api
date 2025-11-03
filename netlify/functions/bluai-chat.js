@@ -164,6 +164,7 @@ statusCode: 200,
 body: JSON.stringify({ response: "You're very welcome! Feel free to reach out if you have any other questions. Have a great day!" }),
 headers: {
 'Access-Control-Allow-Origin': '*', 
+'Content-Type': 'application/json',
 }
 };
 }
@@ -288,6 +289,7 @@ body: JSON.stringify({ response: response.text }),
 headers: {
 
 'Access-Control-Allow-Origin': '*', 
+'Content-Type': 'application/json',
 
 }
 
