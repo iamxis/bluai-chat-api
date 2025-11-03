@@ -1,25 +1,29 @@
-// netlify/functions/gemini-chat.js (Final Version with RAG and System Instruction)
+// netlify/functions/gemini-chat.js (Final Version with RAG and User-Agent Fix)
 
 // --- RAG HELPER FUNCTION ---
-// WARNING: Netlify's environment typically supports the native 'fetch', 
-// but if not, you must install 'node-fetch' in your package.json.
 async function fetchContextFromUrl(url) {
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
+        // 🛑 FIX: Added User-Agent header to bypass potential 503 firewalls/security checks
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        }); 
+        
+        if (response.status !== 200) {
+            // Updated error message to be more specific for debugging
             console.error(`Failed to fetch ${url}. Status: ${response.status}`);
-            return `[Content Retrieval Error: Page not found or unreachable.]`;
+            return `[Content Retrieval Error: Server returned status ${response.status}.]`;
         }
         
         const rawHtml = await response.text();
         
         // --- Crude HTML Cleanup (for simplicity) ---
-        // Removes scripts, styles, and HTML tags to get readable text.
         let cleanText = rawHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
                                .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
                                .replace(/<[^>]*>/g, '');
         
-        // Truncate content to avoid exceeding Gemini's token limit (5,000 chars is safe)
+        // Truncate content to avoid exceeding Gemini's token limit
         const MAX_CONTEXT_LENGTH = 5000;
         cleanText = cleanText.substring(0, MAX_CONTEXT_LENGTH);
         
@@ -27,7 +31,7 @@ async function fetchContextFromUrl(url) {
 
     } catch (e) {
         console.error("Context fetch error:", e);
-        return "[Content Retrieval Error: Network issue.]";
+        return "[Content Retrieval Error: Network issue (e.g., DNS or Timeout).]";
     }
 }
 // --- END HELPER FUNCTION ---
@@ -74,22 +78,22 @@ exports.handler = async (event) => {
     let contextToInject = "";
     
     // 🛑 RAG LOGIC: Check User Intent and Define Context URL 🛑
-    // REPLACE these URLs with the actual links on your site!
+    // URLs are set to your provided links
     if (userPrompt.toLowerCase().includes("return") || userPrompt.toLowerCase().includes("refund")) {
         contextToInject = await fetchContextFromUrl("https://iamxis.com.ng/returns/"); 
     } else if (userPrompt.toLowerCase().includes("shipping") || userPrompt.toLowerCase().includes("delivery")) {
         contextToInject = await fetchContextFromUrl("https://iamxis.com.ng/shipping/"); 
     } 
     // Add more conditions here for "FAQ", "sizing", etc.
- 
-    // After the RAG Logic block where contextToInject is set:
-    console.log("Fetched Context for Gemini:", contextToInject); // <-- ADD THIS LINE
+
+    // ADDED DEBUG LINE: Now includes the fix for better error tracing
+    console.log("Fetched Context for Gemini:", contextToInject); 
 
     // 🛑 Construct the FINAL Prompt 🛑
     let finalPrompt = userPrompt;
 
-    if (contextToInject.length > 0) {
-        // Embed the fetched content into the prompt
+    if (contextToInject.length > 0 && !contextToInject.startsWith('[Content Retrieval Error:')) {
+        // Embed the fetched content into the prompt ONLY if retrieval was successful
         finalPrompt = `
         [START KNOWLEDGE BASE FROM SITE]
         ${contextToInject}
