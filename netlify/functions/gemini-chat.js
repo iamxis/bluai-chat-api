@@ -1,20 +1,16 @@
-// netlify/functions/gemini-chat.js (Final attempt with corrected flow)
+// netlify/functions/gemini-chat.js (Final Secure Version)
 
 exports.handler = async (event) => {
-    // 1. Dynamic Import (Must be first)
+    // 1. Dynamic Import
     const { GoogleGenAI } = await import("@google/genai"); 
     
-    // Use the variable that is set in your Netlify dashboard
+    // 2. Initialize the client securely using Netlify's environment variable
+    // This relies on your GOOGLE_API_KEY or GEMINI_API_KEY being set in Netlify's UI.
     const ai = new GoogleGenAI({ 
-    apiKey: process.env.GEMINI_API_KEY // or GEMINI_API_KEY
-  });
+        apiKey: process.env.GEMINI_API_KEY 
+    });
     
-    // // 2. Initialize the client
-    // const ai = new GoogleGenAI({ 
-    //     apiKey: TEMPORARY_API_KEY 
-    // }); 
-    
-    // 3. HANDLE OPTIONS (CORS PRE-FLIGHT)
+    // 3. HANDLE OPTIONS (CORS Pre-Flight Check)
     if (event.httpMethod === "OPTIONS") {
         return {
             statusCode: 200,
@@ -42,7 +38,7 @@ exports.handler = async (event) => {
     
     const userPrompt = requestBody.prompt;
 
-    // 6. API Call Logic (Wrapped in try...catch)
+    // 6. API Call Logic
     try { 
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash", 
@@ -61,13 +57,12 @@ exports.handler = async (event) => {
         // ERROR RESPONSE
         console.error("Gemini API Error:", error);
         
-        // This catch handles API errors (like invalid key or model fail)
+        // Return a 403 status if the error is explicitly an API key/permission issue
         const status = (error.message && (error.message.includes('API key') || error.message.includes('permission'))) ? 403 : 500;
         
         return {
             statusCode: status,
             body: JSON.stringify({ error: `AI Service Error (Code ${status}): ${error.message}` }),
         };
-    } // <-- End of API call try...catch block
-
-}; // <-- End of exports.handler
+    }
+};
