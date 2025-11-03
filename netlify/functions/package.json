@@ -1,7 +1,0 @@
-{
-  "name": "gemini-netlify-proxy",
-  "version": "1.0.0",
-  "dependencies": {
-    "@google/genai": "^0.16.0"
-  }
-}
