@@ -169,44 +169,59 @@ finalPrompt = `
 }
 
 
-// 6. API Call Logic
+// 6. API Call Logic (Updated with 3-Try Automatic Retry for 503 Errors)
 
-try { 
+const MAX_RETRIES = 3; 
+let response;
+let apiError = null;
 
-const response = await ai.models.generateContent({
+for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try { 
+        response = await ai.models.generateContent({
+            model: "gemini-2.5-flash", 
+            // Use the augmented prompt
+            contents: finalPrompt,
+            config: {
+                // Set the fixed persona and rules
+                systemInstruction: brandPersona, 
+            },
+        });
+        // If successful, break the loop
+        apiError = null;
+        break; 
 
-model: "gemini-2.5-flash", 
+    } catch (error) {
+        // Capture the error but check if it's the specific 503 overload
+        apiError = error;
 
-// Use the augmented prompt
-
-contents: finalPrompt,
-
-config: {
-
-// Set the fixed persona and rules
-
-systemInstruction: brandPersona, 
-
-},
-
-});
-
-
-// SUCCESS RESPONSE
-
-return {
-
-statusCode: 200,
-
-body: JSON.stringify({ response: response.text }),
-
-headers: {
-
-'Access-Control-Allow-Origin': '*', 
-
+        // Check if the error is the 503 Service Unavailable
+        if (error.message.includes('503 Service Unavailable') && attempt < MAX_RETRIES) {
+            console.warn(`Gemini API overloaded (503). Retrying in 1 second... (Attempt ${attempt}/${MAX_RETRIES})`);
+            // Wait for 1 second before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+            // If it's a different error or we're on the last attempt, break and throw the error
+            break; 
+        }
+    }
 }
 
+// Check if the final response object exists or if we ran out of retries
+if (!response && apiError) {
+    // Re-throw the last API error to be caught by your main handler's catch block
+    throw apiError;
+}
+
+// SUCCESS RESPONSE (No changes here, it just uses the 'response' variable set above)
+return {
+    statusCode: 200,
+    body: JSON.stringify({ response: response.text }),
+    headers: {
+        'Access-Control-Allow-Origin': '*', 
+    }
 };
+
+// ... Your existing outer catch(error) block handles errors thrown above...
 
 } catch (error) {
 
