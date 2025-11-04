@@ -255,66 +255,58 @@ How can I help?". It is important
 
 
 
-// 6. API Call Logic
+// --- Start of NEW API Call Logic (REPLACEMENT) ---
 
-try { 
+const MAX_RETRIES = 3; 
+let response = null;
+let apiError = null;
 
-const response = await ai.models.generateContent({
+for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try { 
+        console.log(`Attempting Gemini API call (Attempt ${attempt}/${MAX_RETRIES})...`);
+        
+        response = await ai.models.generateContent({
+            model: "gemini-2.5-flash", 
+            contents: finalPrompt,
+            config: {
+                systemInstruction: brandPersona, 
+            },
+        });
+        
+        // If successful, break the loop
+        apiError = null; 
+        break; 
 
-model: "gemini-2.5-flash", 
+    } catch (error) {
+        apiError = error; // Store the error
+        console.warn(`Gemini API call failed on attempt ${attempt}: ${error.message}`);
 
-// Use the augmented prompt
-
-contents: finalPrompt,
-
-config: {
-
-// Set the fixed persona and rules
-
-systemInstruction: brandPersona, 
-
-},
-
-});
-
-
-
-// SUCCESS RESPONSE
-
-return {
-
-statusCode: 200,
-
-body: JSON.stringify({ response: response.text }),
-
-headers: {
-
-'Access-Control-Allow-Origin': '*', 
-
+        // Check for 503 error to retry
+        if (error.message.includes('503') && attempt < MAX_RETRIES) {
+            // Wait for 1 second before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+            // If it's a permanent error or last attempt, throw it out of the loop
+            throw error; 
+        }
+    }
 }
 
-};
-
-} catch (error) {
-
-// ERROR RESPONSE
-
-console.error("IAX BluAI Error:", error);
-
-
-
-const status = (error.message && (error.message.includes('API key') || error.message.includes('permission'))) ? 403 : 500;
-
-
-
-return {
-
-statusCode: status,
-
-body: JSON.stringify({ error: `AI Service Error (Code ${status}): ${error.message}` }),
-
-};
-
+// Check if we exited the loop due to a persistent error
+if (apiError) {
+    console.error("Failed to get a response after all retries.");
+    throw apiError; // Throw the last recorded API error
 }
+
+// The rest of your success return block continues here:
+return {
+    statusCode: 200,
+    body: JSON.stringify({ response: response.text }),
+    headers: {
+        'Access-Control-Allow-Origin': '*', 
+    }
+};
+
+// --- End of NEW API Call Logic (REPLACEMENT) ---
 
 };
