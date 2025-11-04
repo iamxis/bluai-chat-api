@@ -1,4 +1,4 @@
-// netlify/functions/gemini-chat.js (Final Version with RAG and User-Agent Fix)
+// netlify/functions/bluai-chat.js (Final Version with RAG and User-Agent Fix)
 
 
 
