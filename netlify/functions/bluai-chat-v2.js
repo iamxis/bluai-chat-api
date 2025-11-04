@@ -180,7 +180,7 @@ let contextToInject = "";
 // The previous conditional RAG logic (checking for "return" or "shipping") is replaced.
 // We now fetch the entire centralized knowledge base every time.
 // NOTE: Replace this placeholder URL with the actual link to your dedicated AI knowledge page.
-contextToInject = await fetchContextFromUrl("https://bluaiknowledgev2.netlify.app/");
+contextToInject = await fetchContextFromUrl("https://iamxis.com.ng/ai-knowledge-base/");
 
 
 
@@ -257,54 +257,64 @@ How can I help?". It is important
 
 // 6. API Call Logic
 
-// --- Start of API Call Block ---
+try { 
 
-const MAX_RETRIES = 3; 
-let response = null;
-let apiError = null;
+const response = await ai.models.generateContent({
 
-for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try { 
-        console.log(`Attempting Gemini API call (Attempt ${attempt}/${MAX_RETRIES})...`);
-        
-        response = await ai.models.generateContent({
-            model: "gemini-2.5-flash", 
-            contents: finalPrompt,
-            config: {
-                systemInstruction: brandPersona, 
-            },
-        });
-        
-        // If successful, break the loop
-        apiError = null; 
-        break; 
+model: "gemini-2.5-flash", 
 
-    } catch (error) {
-        apiError = error; // Store the error
-        console.warn(`Gemini API call failed on attempt ${attempt}: ${error.message}`);
+// Use the augmented prompt
 
-        // Check for 503 (or other retryable) errors
-        if (error.message.includes('503') && attempt < MAX_RETRIES) {
-            // Use a simple fixed 1-second delay before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        } else {
-            // If it's a permanent error (like 400, 403) or we're out of retries,
-            // the loop will continue to the final check/throw outside the loop.
-        }
-    }
-}
+contents: finalPrompt,
 
-// Check if we exited the loop due to a persistent error
-if (apiError) {
-    console.error("Failed to get a response after all retries.");
-    throw new Error(`IAX BluAI Error: ${apiError.message}`); 
-}
+config: {
 
-// --- End of API Call Block (Continue with success response below) ---
-// Your existing return block will execute here if 'response' is not null. 
-// Example:
+// Set the fixed persona and rules
+
+systemInstruction: brandPersona, 
+
+},
+
+});
+
+
+
+// SUCCESS RESPONSE
+
 return {
-    statusCode: 200,
-    body: JSON.stringify({ response: response.text }),
-    // ...
+
+statusCode: 200,
+
+body: JSON.stringify({ response: response.text }),
+
+headers: {
+
+'Access-Control-Allow-Origin': '*', 
+
+}
+
+};
+
+} catch (error) {
+
+// ERROR RESPONSE
+
+console.error("IAX BluAI Error:", error);
+
+
+
+const status = (error.message && (error.message.includes('API key') || error.message.includes('permission'))) ? 403 : 500;
+
+
+
+return {
+
+statusCode: status,
+
+body: JSON.stringify({ error: `AI Service Error (Code ${status}): ${error.message}` }),
+
+};
+
+}
+
 };
