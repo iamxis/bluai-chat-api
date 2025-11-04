@@ -169,11 +169,10 @@ finalPrompt = `
 }
 
 
-// 6. API Call Logic (Updated with 3-Try Automatic Retry for 503 Errors)
+// 6. API Call Logic (Corrected 3-Try Automatic Retry for 503 Errors)
 
 const MAX_RETRIES = 3; 
-let response;
-let apiError = null;
+let response = null;
 
 for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try { 
@@ -186,33 +185,27 @@ for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
                 systemInstruction: brandPersona, 
             },
         });
-        // If successful, break the loop
-        apiError = null;
+        // If successful, exit the loop
         break; 
 
     } catch (error) {
-        // Capture the error but check if it's the specific 503 overload
-        apiError = error;
+        // Log the attempt failure
+        console.warn(`Gemini API call failed on attempt ${attempt}: ${error.message}`);
 
-        // Check if the error is the 503 Service Unavailable
+        // Check for the specific 503 Service Unavailable error to retry
         if (error.message.includes('503 Service Unavailable') && attempt < MAX_RETRIES) {
-            console.warn(`Gemini API overloaded (503). Retrying in 1 second... (Attempt ${attempt}/${MAX_RETRIES})`);
+            console.warn(`Gemini API overloaded (503). Retrying in 1 second...`);
             // Wait for 1 second before retrying
             await new Promise(resolve => setTimeout(resolve, 1000));
         } else {
-            // If it's a different error or we're on the last attempt, break and throw the error
-            break; 
+            // If it's a different error (e.g., 400, 403) or we've run out of retries,
+            // we throw the error to be caught by the main handler's outer catch block.
+            throw error; 
         }
     }
 }
 
-// Check if the final response object exists or if we ran out of retries
-if (!response && apiError) {
-    // Re-throw the last API error to be caught by your main handler's catch block
-    throw apiError;
-}
-
-// SUCCESS RESPONSE (No changes here, it just uses the 'response' variable set above)
+// SUCCESS RESPONSE (This runs ONLY if the loop successfully broke out)
 return {
     statusCode: 200,
     body: JSON.stringify({ response: response.text }),
@@ -221,7 +214,8 @@ return {
     }
 };
 
-// ... Your existing outer catch(error) block handles errors thrown above...
+// NOTE: The main handler's outer catch block (which returns the 403/500 error)
+// handles any error thrown from the retry logic above.
 
 } catch (error) {
 
