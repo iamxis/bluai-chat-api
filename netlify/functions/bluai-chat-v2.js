@@ -284,7 +284,7 @@ for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         // Check for 503 error to retry
         if (error.message.includes('503') && attempt < MAX_RETRIES) {
             // Wait for 1 second before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 3000));
         } else {
             // If it's a permanent error or last attempt, throw it out of the loop
             throw error; 
