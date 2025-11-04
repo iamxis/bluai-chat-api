@@ -5,73 +5,36 @@
 
 
 // --- RAG HELPER FUNCTION ---
-
 async function fetchContextFromUrl(url) {
+    try {
+        // 🛑 FIX: Added User-Agent header to bypass potential 503 firewalls/security checks
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        }); 
 
-try {
+        if (response.status !== 200) {
+            console.error(`Failed to fetch ${url}. Status: ${response.status}`);
+            return `[Content Retrieval Error: Server returned status ${response.status}.]`;
+        }
 
-// 🛑 FIX: Added User-Agent header to bypass potential 503 firewalls/security checks
+        const rawText = await response.text(); // Renamed for clarity (was rawHtml)
 
-const response = await fetch(url, {
+        // --- CLEANUP REMOVED: Since the source is now .txt, we use the raw text directly ---
+        let cleanText = rawText; // <--- The single replacement line
 
-headers: {
+        // Truncate content to avoid exceeding Gemini's token limit
+        const MAX_CONTEXT_LENGTH = 5000;
+        cleanText = cleanText.substring(0, MAX_CONTEXT_LENGTH);
 
-'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        return cleanText.trim();
 
+    } catch (e) {
+        console.error("Context fetch error:", e);
+        return "[Content Retrieval Error: Network issue (e.g., DNS or Timeout).]";
+    }
 }
-
-}); 
-
-
-
-if (response.status !== 200) {
-
-// Updated error message to be more specific for debugging
-
-console.error(`Failed to fetch ${url}. Status: ${response.status}`);
-
-return `[Content Retrieval Error: Server returned status ${response.status}.]`;
-
-}
-
-
-
-const rawHtml = await response.text();
-
-
-
-// --- Crude HTML Cleanup (for simplicity) ---
-
-let cleanText = rawHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-
-.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-
-.replace(/<[^>]*>/g, '');
-
-
-
-// Truncate content to avoid exceeding Gemini's token limit
-
-const MAX_CONTEXT_LENGTH = 5000;
-
-cleanText = cleanText.substring(0, MAX_CONTEXT_LENGTH);
-
-
-
-return cleanText.trim();
-
-
-
-} catch (e) {
-
-console.error("Context fetch error:", e);
-
-return "[Content Retrieval Error: Network issue (e.g., DNS or Timeout).]";
-
-}
-
-}
-
 // --- END HELPER FUNCTION ---
 
 
@@ -180,7 +143,7 @@ let contextToInject = "";
 // The previous conditional RAG logic (checking for "return" or "shipping") is replaced.
 // We now fetch the entire centralized knowledge base every time.
 // NOTE: Replace this placeholder URL with the actual link to your dedicated AI knowledge page.
-contextToInject = await fetchContextFromUrl("https://bluaiknowledgev2.netlify.app/");
+contextToInject = await fetchContextFromUrl("https://bluaiknowledgev2.netlify.app/blu-ai-knowledge.txt");
 
 
 
