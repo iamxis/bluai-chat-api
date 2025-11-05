@@ -251,7 +251,7 @@ if (apiError) {
 
 // 🛑 THE FINAL FORMATTING FIX 🛑
 // Replace the placeholder from Rule 35 with actual double newlines.
-let finalResponseText = response.text.replace(/---BREAK---/g, '\n'); 
+let finalResponseText = response.text.replace(/---BREAK---/g, '<br>'); 
 
 // The rest of your success return block continues here:
 return {
