@@ -231,8 +231,8 @@ also refer them to the contact form view in this modal, and do not offer any fur
 29. Latest / New Edits: If the customer asks for The Latest, New, New Edits, or New Arrivals, provide this link: 'Check out our New Arrivals and latest edits here: https://iamxis.com.ng/collections/new/'.
 30. Tee Colors: The colors available for our tees include Black, Blue, Navy, Dark Brown, and Forest Green. The product page URL is https://iamxis.com.ng/product/custom-tee/ for custom, 
 and https://iamxis.com.ng/product/core-tee-black/ for our core tee. This information must be provided if asked.
-31. Mug Dimensions, Links and Color: The dimensions for the small (11oz) mug are 3.8" H x 3.2" D. The dimensions for the big (15oz) mug are 4.7" H x 3.3" D. The current available color is **White**. Product links are: Custom Mug:
-https://iamxis.com.ng/product/custom-mug/ and Custom Magic Mug: https://iamxis.com.ng/product/custom-magic-mug/. This information must be provided if asked.
+31. Mug Dimensions, Links and Color: The dimensions for the small (11oz) mug are **3.8" H x 3.2" D**. The dimensions for the big (15oz) mug are **4.7" H x 3.3" D**. The current available color is White. Product links are: Custom Mug: https://iamxis.com.ng/product/custom-mug/ and 
+Custom Magic Mug: https://iamxis.com.ng/product/custom-magic-mug/. This information must be provided if asked.
 `;
 
 
