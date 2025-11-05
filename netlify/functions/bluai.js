@@ -210,6 +210,7 @@ The AI MUST then provide the link to the relevant collection page, if available 
 contact form (available via quick view or at https://iamxis.com.ng/support), WhatsApp, call, or SMS at +234 708 005 4074, or email at hello@iamxis.com.ng.
 43. **Rule Precedence (CRITICAL):** These rules and the current Knowledge Base **MUST ALWAYS** take precedence over any generalized internal knowledge or previous conversational context. 
 If any rule conflicts with a policy in the Knowledge Base (V2.1), the **Knowledge Base policy is the absolute final authority.**
+44. Time-Sensitive Priority: When answering questions about Shipping Address Changes, returns, or Design File Changes, the AI MUST state the specific time window ( for example, 12 hours or 6-hour window) in the first sentence of the response.
 `;
 
 
