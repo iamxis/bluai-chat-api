@@ -243,7 +243,7 @@ for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         console.log(`Attempting Gemini API call (Attempt ${attempt}/${MAX_RETRIES})...`);
         
         response = await ai.models.generateContent({
-            model: "gemini-2.5-flash", 
+            model: "gemini-2.5-flash-lite", 
             contents: finalPrompt,
             config: {
                 systemInstruction: brandPersona, 
