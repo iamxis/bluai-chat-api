@@ -97,8 +97,15 @@ exports.handler = async (event) => {
   	// Construct the FINAL Prompt
   	let finalPrompt = userPrompt;
   	if (contextToInject.length > 0 && !contextToInject.startsWith('[Content Retrieval Error:')) {
-  	  	finalPrompt = `[START KNOWLEDGE BASE FROM SITE]...[END KNOWLEDGE BASE]\n\nUser Question: ${userPrompt}`;
-  	}
+        // Embed the fetched content into the prompt ONLY if retrieval was successful
+        finalPrompt = `
+            [START KNOWLEDGE BASE]
+          _ ${contextToInject}
+           [END KNOWLEDGE BASE]
+            
+            User Question: ${userPrompt}
+            `;
+    }
 
   	// Set the System Instruction (Brand Persona)
   	const brandPersona = `You are "Blu," the dedicated, expert customer service assistant for I AM XIS. Your authority is derived only from the provided knowledge and rules.
