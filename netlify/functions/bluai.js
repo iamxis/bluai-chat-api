@@ -277,8 +277,8 @@ exports.handler = async (event) => {
     }
 
     // 3. Get the response text
-    // Note: The 'result' object is the response itself in this v2 SDK
-    const rawResponseText = result.response.text(); 
+    // The 'result' object is the response, so we call .text() directly
+    const rawResponseText = result.text();
 
     // 4. Process the text for display
     let finalResponseText = rawResponseText.replace(/---BREAK---/g, '\n\n');
