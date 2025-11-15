@@ -230,7 +230,7 @@ exports.handler = async (event) => {
 
     // 1. 🛑 FIX: Get the specific model from the client
     // This is the correct v2 syntax: ai.getModel()
-    const model = ai.getModel({
+    const model = ai.model({
         model: "gemini-2.5-flash-lite", 
         systemInstruction: brandPersona
     });
