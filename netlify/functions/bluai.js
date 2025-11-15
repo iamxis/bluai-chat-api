@@ -229,7 +229,7 @@ exports.handler = async (event) => {
     // --- Start of NEW API Call Logic (REPLACEMENT) ---
 
     // 1. 🛑 FIX #3: Initialize the model with the system instruction
-    const model = ai.getGenerativeModel({
+    const model = ai.getGenModel({
         model: "gemini-2.5-flash-lite", 
         systemInstruction: brandPersona
     });
