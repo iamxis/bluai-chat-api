@@ -233,6 +233,11 @@ exports.handler = async (event) => {
 
 
 // --- Start of NEW API Call Logic (REPLACEMENT) ---
+// 1. 🛑 Initialize the model OUTSIDE the loop, passing the brandPersona
+const model = ai.getGenerativeModel({
+    model: "gemini-2.5-flash-lite", // You can swap this for 'gemini-2.5-flash-lite'
+    systemInstruction: brandPersona
+});
 
 const MAX_RETRIES = 3; 
 let response = null;
@@ -242,13 +247,8 @@ for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try { 
         console.log(`Attempting Gemini API call (Attempt ${attempt}/${MAX_RETRIES})...`);
         
-        response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite", 
-            contents: finalPrompt,
-            config: {
-                systemInstruction: brandPersona, 
-            },
-        });
+        // 2. 🛑 Call generateContent with ONLY the prompt
+        result = await model.generateContent(finalPrompt);
         
         // If successful, break the loop
         apiError = null; 
