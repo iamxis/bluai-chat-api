@@ -218,12 +218,18 @@ exports.handler = async (event) => {
 
     // --- Start of NEW API Call Logic (REPLACEMENT) ---
 
-    // 1. 🛑 FIX: Manually build the 'contents' array for chat history
+    // 1. 🛑 FIX: Manually build the 'contents' array with the system prompt.
+    // This is the most reliable way to make the AI obey your rules.
     const contents = [
-        ...history, // The old messages
+        // Manually insert the brandPersona as the "system" role
+        { 
+            role: "system", 
+            parts: [{ text: brandPersona }] 
+        }, 
+        ...history, // Then add the old messages
         {
             role: "user",
-            parts: [{ text: finalPrompt }] // The new RAG-infused prompt
+            parts: [{ text: finalPrompt }] // Finally, add the new RAG-infused prompt
         }
     ];
 
@@ -235,11 +241,11 @@ exports.handler = async (event) => {
       	try { 
       	  	console.log(`Attempting Gemini API call (Attempt ${attempt}/${MAX_RETRIES})...`);
       	  	
-      	  	// 2. 🛑 FIX: Use ai.models.generateContent() with the CORRECT structure
+      	  	// 2. 🛑 FIX: Call generateContent WITHOUT the systemInstruction property
+      	  	// (since we already added it to the 'contents' array)
       	  	result = await ai.models.generateContent({
       	  	  	model: "gemini-2.5-flash-lite", 
-      	  	  	contents: contents,                 
-      	  	  	systemInstruction: brandPersona   // This is the correct location
+      	  	  	contents: contents                 
       	  	});
       	  	
       	  	apiError = null; 
@@ -261,28 +267,21 @@ exports.handler = async (event) => {
       	throw apiError;
     }
 
-    // 3. 🛑 THE DIRECT SOLUTION: Check for a blocked/empty response
-    if (!result || !result.response || typeof result.response.text !== 'function') {
-        console.error("API call succeeded but returned no response or an invalid object. This is likely due to safety settings or a block.");
+    // 3. 🛑 FIX: Check for safety blocks/empty responses
+    if (!result || !result.candidates || !result.candidates[0] || !result.candidates[0].content) {
         
-        // Log the full result for debugging, just in case
-        console.log("Full (failed) API Result:", JSON.stringify(result, null, 2));
-
+        console.error("API call succeeded but returned an invalid object. This is likely a safety block.", JSON.stringify(result, null, 2));
         const errorText = "I'm sorry, I am unable to respond to that prompt. Please try rephrasing your message.";
         
-        // Return a safe error and the *unchanged* history
         return {
             statusCode: 200,
-            body: JSON.stringify({ 
-                response: errorText, 
-                history: history // Send back the old history
-            }),
+            body: JSON.stringify({ response: errorText, history: history }),
             headers: { 'Access-Control-Allow-Origin': '*' }
         };
     }
 
-    // 4. Get the response text (This code is now safe to run)
-    const rawResponseText = result.response.text(); 
+    // 4. 🛑 FIX: Get the response text from the correct location
+    const rawResponseText = result.candidates[0].content.parts[0].text; 
 
     // 5. Process the text for display
     let finalResponseText = rawResponseText.replace(/---BREAK---/g, '\n\n');
